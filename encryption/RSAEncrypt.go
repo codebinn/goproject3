@@ -12,13 +12,14 @@ import (
 	encryption.RSAGenerate(1024)
 	plainText := "123456789qwertyuiopasdfghjklzxcvbnm"
 	fmt.Println("plainText:", plainText)
-	cipherText := encryption.RSAEncrypt("bublicKey.pem", plainText)
+	cipherText := encryption.RSAEncrypt("publicKey.pem", plainText)
 	fmt.Println("cipherText:", string(cipherText))
 	plainText2 := encryption.RSADecrypt("privateKey.pem", cipherText)
 	fmt.Println("plainText2:", string(plainText2))
 }*/
 
-func RSAGenerate(keysize int) {
+// 生成密钥对
+func RSAGenerate(keysize int, pvtFilename string, pubFilename string) {
 	//保存私钥
 	privatekey, err := rsa.GenerateKey(rand.Reader, keysize)
 	ErrPanic(err)
@@ -27,7 +28,7 @@ func RSAGenerate(keysize int) {
 		Type:  "RSA Private Key",
 		Bytes: prikey,
 	}
-	f, err := os.Create("privateKey.pem")
+	f, err := os.Create(pvtFilename)
 	defer f.Close()
 	ErrPanic(err)
 	err = pem.Encode(f, &block)
@@ -39,36 +40,16 @@ func RSAGenerate(keysize int) {
 		Type:  "RSA Private Key",
 		Bytes: bublickey,
 	}
-	f, err = os.Create("bublicKey.pem")
+	f, err = os.Create(pubFilename)
 	defer f.Close()
 	ErrPanic(err)
 	err = pem.Encode(f, &block)
 	ErrPanic(err)
 }
 
-// RSA加密
-func RSAEncrypt(pubfile, plainText string) (cipherText []byte) {
-	f, err := os.Open(pubfile)
-	ErrPanic(err)
-	defer f.Close()
-	stat, err := f.Stat()
-	ErrPanic(err)
-	buf := make([]byte, stat.Size())
-	_, err = f.Read(buf)
-	ErrPanic(err)
-
-	block, _ := pem.Decode(buf)
-
-	buplickey, err := x509.ParsePKCS1PublicKey(block.Bytes)
-	ErrPanic(err)
-	cipherText, err = rsa.EncryptPKCS1v15(rand.Reader, buplickey, []byte(plainText))
-	ErrPanic(err)
-	return
-}
-
-// RSA解密
-func RSADecrypt(prifile string, cipherText []byte) (plainText []byte) {
-	f, err := os.Open(prifile)
+// 提取私钥
+func GetPvtKeyFromFile(filename string) *rsa.PrivateKey {
+	f, err := os.Open(filename)
 	ErrPanic(err)
 	defer f.Close()
 	stat, err := f.Stat()
@@ -81,7 +62,39 @@ func RSADecrypt(prifile string, cipherText []byte) (plainText []byte) {
 
 	privatekey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	ErrPanic(err)
-	plainText, err = rsa.DecryptPKCS1v15(rand.Reader, privatekey, []byte(cipherText))
+	return privatekey
+}
+
+// 提取公钥
+func GetPubKeyFromFile(filename string) *rsa.PublicKey {
+	f, err := os.Open(filename)
+	ErrPanic(err)
+	defer f.Close()
+	stat, err := f.Stat()
+	ErrPanic(err)
+	buf := make([]byte, stat.Size())
+	_, err = f.Read(buf)
+	ErrPanic(err)
+
+	block, _ := pem.Decode(buf)
+
+	publicKey, err := x509.ParsePKCS1PublicKey(block.Bytes)
+	ErrPanic(err)
+	return publicKey
+}
+
+// RSA加密
+func RSAEncrypt(pubfile, plainText string) (cipherText []byte) {
+	publicKey := GetPubKeyFromFile(pubfile)
+	cipherText, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, []byte(plainText))
 	ErrPanic(err)
 	return
+}
+
+// RSA解密
+func RSADecrypt(prifile string, cipherText []byte) string {
+	privatekey := GetPvtKeyFromFile(prifile)
+	plainText, err := rsa.DecryptPKCS1v15(rand.Reader, privatekey, cipherText)
+	ErrPanic(err)
+	return string(plainText)
 }

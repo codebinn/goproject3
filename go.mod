@@ -1,4 +1,4 @@
-module mygo
+module goproject3
 
 go 1.20
 

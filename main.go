@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"mygo/encryption"
+	"goproject3/encryption"
 )
 
 func main() {
-	key := []byte("abcdefgh12345678")
-	plainText := []byte("hello world asdfgh4537837378343jkl;")
-	fmt.Println("plainText:", string(plainText))
-	cipherText := encryption.CTREnDecryption(key, plainText)
-	fmt.Println("cipherText:", string(cipherText))
-	plainText2 := encryption.CTREnDecryption(key, cipherText)
-	fmt.Println("plainText2:", string(plainText2))
+	//encryption.EcdsaGenerate("privateKey_ecdsa.pem", "publicKey_ecdsa.pem")
+	msg := []byte("fasfhafahsdfl1f4a56f4sd56f4asdf4631563")
+	_, hashed := encryption.Sha256Sum(msg)
+	rbyte, sbyte := encryption.EcdsaSign("privateKey_ecdsa.pem", hashed)
+	fmt.Println(string(rbyte))
+	fmt.Println(string(sbyte))
+	b := encryption.EcdsaVerify("publicKey_ecdsa.pem", hashed, rbyte, sbyte)
+	fmt.Println(b)
 }
